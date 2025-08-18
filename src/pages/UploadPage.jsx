@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import NavyBackground from "../components/NavyBackground";
-import Logo from "../components/Logo";
+import Navbar from "../components/Navbar";
 import { Upload, FileText, Image, X, CheckCircle } from "lucide-react";
 
 const UploadPage = () => {
@@ -64,14 +64,7 @@ const UploadPage = () => {
   return (
     <NavyBackground>
       <div className="min-h-screen flex flex-col p-2 sm:p-4 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between pt-6 pr-6 pl-6">
-          <Logo type="wesee" size="large" />
-          <h1 class="text-4xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
-            Optical Character Recognition
-          </h1>
-          <Logo type="navy" size="large" />
-        </div>
+        <Navbar />
 
         {/* Main Card */}
         <div className="flex-1 flex flex-col items-center justify-start pt-16">

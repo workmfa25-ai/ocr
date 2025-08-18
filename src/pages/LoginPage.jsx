@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NavyBackground from "../components/NavyBackground";
-import Logo from "../components/Logo";
+import Navbar from "../components/Navbar";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 
 const LoginPage = () => {
@@ -34,14 +34,8 @@ const LoginPage = () => {
 
   return (
     <NavyBackground>
-      <div className="flex items-center justify-between pt-6 pr-6 pl-6">
-          <Logo type="wesee" size="large" />
-          <h1 class="text-4xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
-            Optical Character Recognition
-          </h1>
-          <Logo type="navy" size="large" />
-        </div>
-
+      <Navbar showLogout={false} />
+      
       <div className="flex items-center justify-center min-h-[calc(100vh-120px)]">
         <div className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
           <div className="text-center mb-8">

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavyBackground from "../components/NavyBackground";
-import Logo from "../components/Logo";
+import Navbar from "../components/Navbar";
 import {
   FileText,
   Image,
   Download,
-  ArrowLeft,
   Eye,
   Copy,
   CheckCircle,
@@ -87,13 +86,13 @@ const OCRResultsPage = () => {
     return pageTexts;
   };
 
-  const generateMockOCRText = (file, pageNumber = null) => {
+  const generateMockOCRText = (file, pageNumber = 1) => {
     const sampleTexts = [
-      `Page ${pageNumber || 1}: This is a sample OCR output with high accuracy.`,
-      `Page ${pageNumber || 1}: Invoice #INV-2024-001\nDate: March 15, 2024\nBill To: John Doe\n123 Main Street`,
-      `Page ${pageNumber || 1}: Meeting Notes\n- Discussed project timeline\n- Reviewed budget requirements`,
-      `Page ${pageNumber || 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-      `Page ${pageNumber || 1}: Product Catalog\nItem 1: Widget A - $29.99\nItem 2: Widget B - $39.99`,
+      `Page ${pageNumber}: This is a sample OCR output with high accuracy.`,
+      `Page ${pageNumber}: Invoice #INV-2024-001\nDate: March 15, 2024\nBill To: John Doe\n123 Main Street`,
+      `Page ${pageNumber}: Meeting Notes\n- Discussed project timeline\n- Reviewed budget requirements`,
+      `Page ${pageNumber}: Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+      `Page ${pageNumber}: Product Catalog\nItem 1: Widget A - $29.99\nItem 2: Widget B - $39.99`,
     ];
     return sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
   };
@@ -145,14 +144,7 @@ const OCRResultsPage = () => {
 
   return (
     <NavyBackground>
-      {/* Header (from LoginPage) */}
-      <div className="flex items-center justify-between pt-6 pr-6 pl-6">
-        <Logo type="wesee" size="large" />
-        <h1 className="text-4xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent text-center">
-          Optical Character Recognition
-        </h1>
-        <Logo type="navy" size="large" />
-      </div>
+      <Navbar />
 
       {/* Main Content Split 50/50 */}
       <div className="flex w-full h-[calc(100vh-120px)]">
