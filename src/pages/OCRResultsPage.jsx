@@ -4,11 +4,12 @@ import NavyBackground from "../components/NavyBackground";
 import Navbar from "../components/Navbar";
 import {
   FileText,
-  Image,
-  Download,
   Eye,
   Copy,
   CheckCircle,
+  Download,
+  BarChart2,
+  MessageCircle,
 } from "lucide-react";
 
 const OCRResultsPage = () => {
@@ -19,9 +20,9 @@ const OCRResultsPage = () => {
   const [ocrResults, setOcrResults] = useState({});
   const [isProcessing, setIsProcessing] = useState(true);
   const [copiedText, setCopiedText] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [fileUrl, setFileUrl] = useState(null);
+  const [activeTab, setActiveTab] = useState("results"); // results | chatbot | confidence
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   // Load files
   useEffect(() => {
@@ -38,18 +39,12 @@ const OCRResultsPage = () => {
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
       setFileUrl(url);
-      setCurrentPage(1);
-
-      const result = ocrResults[selectedFile.name];
-      if (result) {
-        setTotalPages(result.pageCount);
-      }
 
       return () => {
         if (url) URL.revokeObjectURL(url);
       };
     }
-  }, [selectedFile, ocrResults]);
+  }, [selectedFile]);
 
   const processFiles = async (uploadedFiles) => {
     setIsProcessing(true);
@@ -59,15 +54,9 @@ const OCRResultsPage = () => {
       const file = uploadedFiles[i];
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const pageCount = file.type.includes("pdf")
-        ? Math.floor(Math.random() * 10) + 1
-        : 1;
       results[file.name] = {
         text: generateMockOCRText(file),
-        confidence: Math.floor(Math.random() * 20) + 80,
-        pageCount: pageCount,
-        processingTime: Math.floor(Math.random() * 3000) + 1000,
-        pageTexts: generatePageTexts(pageCount),
+        confidence: Math.floor(Math.random() * 20) + 80, // random 80–100
       };
     }
 
@@ -78,23 +67,8 @@ const OCRResultsPage = () => {
     }
   };
 
-  const generatePageTexts = (pageCount) => {
-    const pageTexts = {};
-    for (let i = 1; i <= pageCount; i++) {
-      pageTexts[i] = generateMockOCRText(null, i);
-    }
-    return pageTexts;
-  };
-
-  const generateMockOCRText = (file, pageNumber = 1) => {
-    const sampleTexts = [
-      `Page ${pageNumber}: This is a sample OCR output with high accuracy.`,
-      `Page ${pageNumber}: Invoice #INV-2024-001\nDate: March 15, 2024\nBill To: John Doe\n123 Main Street`,
-      `Page ${pageNumber}: Meeting Notes\n- Discussed project timeline\n- Reviewed budget requirements`,
-      `Page ${pageNumber}: Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-      `Page ${pageNumber}: Product Catalog\nItem 1: Widget A - $29.99\nItem 2: Widget B - $39.99`,
-    ];
-    return sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+  const generateMockOCRText = (file) => {
+    return `This is the OCR result for file: ${file.name}\n\nSample recognized text goes here...`;
   };
 
   const copyToClipboard = async (text) => {
@@ -107,20 +81,29 @@ const OCRResultsPage = () => {
     }
   };
 
-  const downloadText = (filename, text) => {
+  const downloadFile = (filename, text, format) => {
+    let blob;
+    if (format === "txt") {
+      blob = new Blob([text], { type: "text/plain" });
+    } else if (format === "docx") {
+      blob = new Blob([text], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+    } else if (format === "pdf") {
+      blob = new Blob([text], { type: "application/pdf" });
+    }
+
     const element = document.createElement("a");
-    const file = new Blob([text], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${filename.replace(/\.[^/.]+$/, "")}_ocr.txt`;
+    element.href = URL.createObjectURL(blob);
+    element.download = `${filename.replace(/\.[^/.]+$/, "")}_ocr.${format}`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   };
 
-  const getCurrentPageText = () => {
+  const getCurrentText = () => {
     if (!selectedFile || !ocrResults[selectedFile.name]) return "";
-    const result = ocrResults[selectedFile.name];
-    return result.pageTexts?.[currentPage] || result.text;
+    return ocrResults[selectedFile.name].text;
   };
 
   if (files.length === 0) {
@@ -146,19 +129,13 @@ const OCRResultsPage = () => {
     <NavyBackground>
       <Navbar />
 
-      {/* Main Content Split 50/50 */}
       <div className="flex w-full h-[calc(100vh-120px)]">
-        {/* Left: PDF/Image Viewer */}
-        <div className="w-1/2 h-full">
+        {/* Left: File Preview */}
+        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center">
           {isProcessing ? (
-            <div className="flex flex-col items-center justify-center h-full bg-white">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Processing Files
-              </h3>
-              <p className="text-gray-600">
-                Please wait while we extract text from your files...
-              </p>
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-700">Processing file...</p>
             </div>
           ) : selectedFile ? (
             selectedFile.type.includes("pdf") ? (
@@ -175,57 +152,144 @@ const OCRResultsPage = () => {
               />
             )
           ) : (
-            <div className="flex flex-col items-center justify-center h-full bg-white text-gray-500">
-              <Eye className="w-16 h-16 mb-4 text-gray-300" />
-              <p>Select a file to view</p>
-            </div>
+            <div className="text-gray-500">Select a file</div>
           )}
         </div>
 
-        {/* Right: OCR Text Results */}
+        {/* Right: Tabbed Content */}
         <div className="w-1/2 h-full flex flex-col bg-white">
-          {!isProcessing && selectedFile && ocrResults[selectedFile.name] ? (
-            <>
-              <div className="flex items-center justify-between p-3 border-b">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  OCR Results
-                </h3>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => copyToClipboard(getCurrentPageText())}
-                    className="text-blue-600 hover:text-blue-700 transition-colors"
-                    title="Copy Page Text"
-                  >
-                    {copiedText === getCurrentPageText() ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
+          {/* Tabs */}
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab("results")}
+              className={`flex-1 py-3 text-center ${
+                activeTab === "results"
+                  ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <FileText className="inline-block w-4 h-4 mr-1" /> OCR Results
+            </button>
+            <button
+              onClick={() => setActiveTab("chatbot")}
+              className={`flex-1 py-3 text-center ${
+                activeTab === "chatbot"
+                  ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <MessageCircle className="inline-block w-4 h-4 mr-1" /> Chatbot
+            </button>
+            <button
+              onClick={() => setActiveTab("confidence")}
+              className={`flex-1 py-3 text-center ${
+                activeTab === "confidence"
+                  ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <BarChart2 className="inline-block w-4 h-4 mr-1" /> Confidence
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeTab === "results" && (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Extracted Text
+                  </h3>
+                  <div className="relative">
+                    <button
+                      onClick={() => setDownloadOpen(!downloadOpen)}
+                      className="flex items-center text-gray-600 hover:text-gray-800"
+                    >
+                      <Download className="w-4 h-4 mr-1" /> Download
+                    </button>
+                    {downloadOpen && (
+                      <div className="absolute right-0 mt-2 w-32 bg-white shadow-md rounded-lg border">
+                        <button
+                          onClick={() =>
+                            downloadFile(selectedFile.name, getCurrentText(), "txt")
+                          }
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          TXT
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadFile(selectedFile.name, getCurrentText(), "docx")
+                          }
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          DOCX
+                        </button>
+                        <button
+                          onClick={() =>
+                            downloadFile(selectedFile.name, getCurrentText(), "pdf")
+                          }
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          PDF
+                        </button>
+                      </div>
                     )}
-                  </button>
-                  <button
-                    onClick={() =>
-                      downloadText(selectedFile.name, getCurrentPageText())
-                    }
-                    className="text-gray-600 hover:text-gray-700 transition-colors"
-                    title="Download Page Text"
-                  >
-                    <Download className="w-4 h-4" />
+                  </div>
+                </div>
+                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono bg-gray-50 p-3 rounded-lg border">
+                  {getCurrentText()}
+                </pre>
+                <button
+                  onClick={() => copyToClipboard(getCurrentText())}
+                  className="mt-3 flex items-center text-blue-600 hover:text-blue-700"
+                >
+                  {copiedText === getCurrentText() ? (
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-1" />
+                  )}
+                  {copiedText === getCurrentText()
+                    ? "Copied!"
+                    : "Copy to Clipboard"}
+                </button>
+              </>
+            )}
+
+            {activeTab === "chatbot" && (
+              <div className="flex flex-col h-full">
+                <div className="flex-1 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                  <p className="text-gray-600">💬 Chatbot coming soon...</p>
+                </div>
+                <div className="flex mt-2">
+                  <input
+                    type="text"
+                    placeholder="Ask something..."
+                    className="flex-1 border rounded-l-lg px-3 py-2 text-sm"
+                  />
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg">
+                    Send
                   </button>
                 </div>
               </div>
+            )}
 
-              <div className="flex-1 overflow-y-auto p-4">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                  {getCurrentPageText()}
-                </pre>
+            {activeTab === "confidence" && selectedFile && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Confidence Level</h3>
+                <div className="w-full bg-gray-200 rounded-full h-6">
+                  <div
+                    className="bg-green-500 h-6 rounded-full text-xs flex items-center justify-center text-white"
+                    style={{
+                      width: `${ocrResults[selectedFile.name].confidence}%`,
+                    }}
+                  >
+                    {ocrResults[selectedFile.name].confidence}%
+                  </div>
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <FileText className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-sm">OCR results will appear here</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </NavyBackground>
