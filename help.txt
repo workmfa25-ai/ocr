@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavyBackground from "../components/NavyBackground";
 import Navbar from "../components/Navbar";
 import {
   FileText,
+  Eye,
   Copy,
   CheckCircle,
   Download,
@@ -23,11 +24,7 @@ const OCRResultsPage = () => {
   const [activeTab, setActiveTab] = useState("results");
   const [downloadOpen, setDownloadOpen] = useState(false);
 
-  // Chatbot state
-  const [chatInput, setChatInput] = useState("");
-  const [chatHistory, setChatHistory] = useState([]);
-  const chatContainerRef = useRef(null);
-
+  // Load files from navigation state
   useEffect(() => {
     if (location.state && location.state.files) {
       setFiles(location.state.files);
@@ -37,6 +34,7 @@ const OCRResultsPage = () => {
     }
   }, [location.state, navigate]);
 
+  // Generate file URL for preview
   useEffect(() => {
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
@@ -49,6 +47,7 @@ const OCRResultsPage = () => {
   const fetchOCRResults = async (uploadedFiles) => {
     setIsProcessing(true);
     const results = {};
+
     for (let file of uploadedFiles) {
       try {
         const formData = new FormData();
@@ -76,6 +75,7 @@ const OCRResultsPage = () => {
         };
       }
     }
+
     setOcrResults(results);
     setIsProcessing(false);
     if (uploadedFiles.length > 0) setSelectedFile(uploadedFiles[0]);
@@ -107,46 +107,9 @@ const OCRResultsPage = () => {
     document.body.removeChild(link);
   };
 
-  const getCurrentText = () =>
-    selectedFile && ocrResults[selectedFile.name]
-      ? ocrResults[selectedFile.name].text
-      : "";
-
-  // Chatbot: send question to /ask/ API
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || !selectedFile) return;
-
-    const questionText = chatInput;
-    setChatInput("");
-
-    setChatHistory((prev) => [...prev, { sender: "user", text: questionText }]);
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/ask/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: questionText }),
-      });
-      const data = await response.json();
-
-      setChatHistory((prev) => [...prev, { sender: "bot", text: data.answer }]);
-
-      setTimeout(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-      }, 50);
-    } catch (err) {
-      console.error(err);
-      setChatHistory((prev) => [
-        ...prev,
-        { sender: "bot", text: "⚠️ Failed to get response from server." },
-      ]);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") sendChatMessage();
+  const getCurrentText = () => {
+    if (!selectedFile || !ocrResults[selectedFile.name]) return "";
+    return ocrResults[selectedFile.name].text;
   };
 
   if (files.length === 0) {
@@ -172,7 +135,7 @@ const OCRResultsPage = () => {
     <NavyBackground>
       <Navbar />
       <div className="flex w-full h-[calc(100vh-120px)]">
-        {/* Left Preview */}
+        {/* Left: File Preview */}
         <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center">
           {isProcessing ? (
             <div className="flex flex-col items-center justify-center h-full">
@@ -198,7 +161,7 @@ const OCRResultsPage = () => {
           )}
         </div>
 
-        {/* Right Tabs */}
+        {/* Right: Tabs */}
         <div className="w-1/2 h-full flex flex-col bg-white">
           {/* Tab Buttons */}
           <div className="flex border-b">
@@ -223,11 +186,12 @@ const OCRResultsPage = () => {
 
           {/* Tab Content */}
           <div className="flex-1 flex flex-col overflow-hidden p-4">
-            {/* OCR Results */}
             {activeTab === "results" && selectedFile && (
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-800">Extracted Text</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Extracted Text
+                  </h3>
                   <div className="relative">
                     <button
                       onClick={() => setDownloadOpen(!downloadOpen)}
@@ -240,7 +204,9 @@ const OCRResultsPage = () => {
                         {["txt", "docx", "pdf"].map((format) => (
                           <button
                             key={format}
-                            onClick={() => downloadFile(selectedFile.name, getCurrentText(), format)}
+                            onClick={() =>
+                              downloadFile(selectedFile.name, getCurrentText(), format)
+                            }
                             className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                           >
                             {format.toUpperCase()}
@@ -270,74 +236,45 @@ const OCRResultsPage = () => {
             )}
 
             {activeTab === "chatbot" && (
-              <div className="flex flex-col h-full">
-                {/* Chat messages container */}
-                <div
-                  ref={chatContainerRef}
-                  className="flex-1 overflow-y-auto p-4 space-y-3 border rounded-lg bg-gray-50"
-                  style={{ maxHeight: "calc(100% - 60px)", scrollbarWidth: "thin" }}
-                >
-                  {chatHistory.length === 0 ? (
-                    <p className="text-gray-500 italic">💬 Ask questions about the document above.</p>
-                  ) : (
-                    chatHistory.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[70%] px-4 py-2 rounded-lg break-words ${
-                            msg.sender === "user"
-                              ? "bg-blue-600 text-white rounded-br-none"
-                              : "bg-gray-200 text-gray-800 rounded-bl-none"
-                          }`}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))
-                  )}
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-2 border rounded-lg bg-gray-50 mb-2">
+                  <p className="text-gray-600">💬 Chatbot coming soon...</p>
                 </div>
-                {/* Input area */}
-                <div className="flex mt-2">
+                <div className="flex">
                   <input
                     type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendChatMessage()}
                     placeholder="Ask something..."
-                    className="flex-1 border rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="flex-1 border rounded-l-lg px-3 py-2 text-sm"
                   />
-                  <button
-                    onClick={sendChatMessage}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg"
-                  >
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg">
                     Send
                   </button>
                 </div>
               </div>
             )}
 
-            {activeTab === "confidence" && (
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Page-wise Confidence:</h4>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border border-gray-300 text-sm text-left">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-2 border-b">Page</th>
-                        <th className="px-4 py-2 border-b">Confidence (%)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ocrResults[selectedFile.name].pageConfidences.map((p) => (
-                        <tr key={p.page} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 border-b">Page {p.page}</td>
-                          <td className="px-4 py-2 border-b">{p.confidence.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {activeTab === "confidence" && selectedFile && ocrResults[selectedFile.name] && (
+              <div className="flex flex-col justify-center h-full">
+                <h3 className="text-lg font-semibold mb-4">Confidence Level</h3>
+                <div className="w-full bg-gray-200 rounded-full h-6">
+                  <div
+                    className="bg-green-500 h-6 rounded-full text-xs flex items-center justify-center text-white"
+                    style={{
+                      width: `${ocrResults[selectedFile.name].confidence}%`,
+                    }}
+                  >
+                    {ocrResults[selectedFile.name].confidence.toFixed(2)}%
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h4 className="font-semibold mb-2">Page-wise Confidence:</h4>
+                  <ul className="text-sm text-gray-700 list-disc list-inside">
+                    {ocrResults[selectedFile.name].pageConfidences.map((p) => (
+                      <li key={p.page}>
+                        Page {p.page}: {p.confidence.toFixed(2)}%
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}
@@ -349,3 +286,6 @@ const OCRResultsPage = () => {
 };
 
 export default OCRResultsPage;
+
+
+isme table or scroller nhi hai

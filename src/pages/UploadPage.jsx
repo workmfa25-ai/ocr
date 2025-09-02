@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import NavyBackground from "../components/NavyBackground";
 import Navbar from "../components/Navbar";
 import { Upload, FileText, Image, X, CheckCircle } from "lucide-react";
+import axios from "axios";
 
 const UploadPage = () => {
   const [dragActive, setDragActive] = useState(false);
@@ -46,11 +47,32 @@ const UploadPage = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // 🔗 Call FastAPI backend
   const handleProcess = async () => {
     if (files.length === 0) return;
     setIsProcessing(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    navigate("/results", { state: { files } });
+
+    try {
+      const formData = new FormData();
+      // Backend expects a single file field = "file"
+      formData.append("file", files[0]);
+
+      const response = await axios.post(
+        "http://localhost:8000/upload/", // ✅ your FastAPI backend
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      // ✅ Navigate to results page with API response
+      navigate("/results", {
+        state: { files, ocrData: response.data },
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Something went wrong while processing the file.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const formatFileSize = (bytes) => {
