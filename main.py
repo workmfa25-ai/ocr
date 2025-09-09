@@ -2,6 +2,7 @@ import os
 import json
 import tempfile
 import torch
+import database
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -216,6 +217,9 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/")
+async def read_root():
+    return {"message": "Hello, connected to MongoDB!", "db_status": str(database.db)}
 
 # Question input model
 class QuestionInput(BaseModel):
@@ -382,3 +386,4 @@ async def get_extracted_text(file_id: str):
     if not text_doc:
         return JSONResponse(content={"error": "Text not found"}, status_code=404)
     return JSONResponse(content={"text": text_doc["extracted_text"]})
+
