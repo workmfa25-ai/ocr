@@ -1,31 +1,79 @@
+# services:
+#   backend:
+#     build: ./backend/
+#     ports:
+#       - "127.0.0.1:5000:5000"
+#     volumes:
+#       - ./backend/ocr-full:/app  # Optional: remove if not needed
+#     depends_on:
+#       - mongodb
+#     environment:
+#       - MONGO_USERNAME=${MONGO_USERNAME:-root}
+#       - MONGO_PASSWORD=${MONGO_PASSWORD:-password}
+#       - MONGO_HOST=${MONGO_HOST:-mongodb}
+#       - MONGO_PORT=${MONGO_PORT:-27017}
+
+#   frontend:
+#     build: ./frontend
+#     ports:
+#       - "127.0.0.1:80:80"
+#     depends_on:
+#       - backend
+
+#   mongodb:
+#     image: mongo:latest
+#     ports:
+#       - "127.0.0.1:27020:27017"
+#     volumes:
+#       - ./db:/data/db
+#     environment:
+#       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-root}
+#       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-password}
+version: '3.8'
 services:
   backend:
     build: ./backend/
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
-      - ./backend/ocr-full:/app  # Optional: remove if not needed
+      - ./backend/ocr-full:/app
     depends_on:
       - mongodb
+      - ollama
     environment:
-      - MONGO_USERNAME=${MONGO_USERNAME:-root}
-      - MONGO_PASSWORD=${MONGO_PASSWORD:-password}
-      - MONGO_HOST=${MONGO_HOST:-mongodb}
-      - MONGO_PORT=${MONGO_PORT:-27017}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    restart: always
 
   frontend:
     build: ./frontend
     ports:
-      - "127.0.0.1:80:80"
+      - "5174:5174"
     depends_on:
       - backend
+    restart: always
 
   mongodb:
     image: mongo:latest
     ports:
-      - "127.0.0.1:27020:27017"
+      - "27017:27017"
     volumes:
       - ./db:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-root}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-password}
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: always
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    entrypoint: ["sh", "-c", "ollama serve & sleep 5 && ollama pull mistral && tail -f /dev/null"]
+    restart: always
+
+volumes:
+  ollama:
