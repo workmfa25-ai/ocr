@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import NavyBackground from "../components/NavyBackground";
 import Navbar from "../components/Navbar";
 import { Upload, FileText, Image, X, CheckCircle } from "lucide-react";
-import axios from "axios";
 
 const UploadPage = () => {
   const [dragActive, setDragActive] = useState(false);
@@ -47,33 +46,34 @@ const UploadPage = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 🔗 Call FastAPI backend
   const handleProcess = async () => {
-    if (files.length === 0) return;
-    setIsProcessing(true);
+  if (!files || files.length === 0) return;  // guard
 
-    try {
-      const formData = new FormData();
-      // Backend expects a single file field = "file"
-      formData.append("file", files[0]);
+  setIsProcessing(true);
+  try {
+    const formData = new FormData();
+    formData.append("file", files[0]); // ✅ must be "file"
 
-      const response = await axios.post(
-        "http://localhost:8000/upload/", // ✅ your FastAPI backend
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+    const response = await fetch("http://127.0.0.1:8000/upload/", {
+      method: "POST",
+      body: formData,
+    });
 
-      // ✅ Navigate to results page with API response
-      navigate("/results", {
-        state: { files, ocrData: response.data },
-      });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Something went wrong while processing the file.");
-    } finally {
-      setIsProcessing(false);
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
     }
-  };
+
+    const data = await response.json();
+
+    navigate("/results", { state: { apiResponse: data, localFiles: files } });
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("Upload failed. Check console for details.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
