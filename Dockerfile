@@ -3,13 +3,15 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy requirements.txt first for caching
-COPY requirements.txt .
+COPY ocr-full/requirements.txt .
 
 # Install system dependencies including bash for source command
 RUN apt-get update && apt-get install -y \
     build-essential \
     libssl-dev \
     libffi-dev \
+    libgl1 \
+    libglib2.0-0 \
     bash \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,8 +19,9 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy virtual environment and application code
-COPY dev-env /app/dev-env
-COPY . /app
+#COPY dev-env /app/dev-env
+COPY ocr-full/dev-env /app/dev-env
+COPY ocr-full/ /app
 
 EXPOSE 5000
 
