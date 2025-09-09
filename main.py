@@ -97,7 +97,7 @@ class LocalHFEmbeddings(Embeddings):
         return pooled[0].cpu().numpy().tolist()
 
 def load_embeddings():
-    model_path = "/home/ocr/Desktop/ocr-full/sentence_transformer_local"
+    model_path = "/home/caio/ocr-app/backend/ocr-full/sentence_transformer_local"
     return LocalHFEmbeddings(model_path)
 
 # === Mistral Calls ===
@@ -386,4 +386,3 @@ async def get_extracted_text(file_id: str):
     if not text_doc:
         return JSONResponse(content={"error": "Text not found"}, status_code=404)
     return JSONResponse(content={"text": text_doc["extracted_text"]})
-
